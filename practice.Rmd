@@ -1,0 +1,43 @@
+---
+title: "Project1"
+author: "Dave Lofte"
+date: "Monday, February 09, 2015"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+###Loading in the data
+
+```{r}
+setwd("~/R/reproResearch/RepData_PeerAssessment1")
+
+activity <- read.csv("activity.csv")
+str(activity)
+head(activity,20)
+summary(activity)
+activity[activity$date == "2012-10-01",] 
+
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+activity[,2] <- as.Date(activity$date)
+times < POSIXactivity$interval
+time <- paste(activity$date, activity$interval)
+time[1]
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+'''{r}
+library(dplyr)
+byDay <- summarise(group_by(act2, date, time, interval), steps = mean(steps))
+str(byDay)
+head(stepsbyDay)
+plot(byDay$time, byDay$steps, type='l')
+plot(byDay$interval, byDay$steps, fill = T)
+mean(byDay$steps, rm.na = TRUE)
+$as.Date
+?plot
+
