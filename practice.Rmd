@@ -10,8 +10,10 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 ###Loading in the data
 
 ```{r}
-setwd("~/R/reproResearch/RepData_PeerAssessment1")
+setwd("~/R/reproResearch/RepData_PeerAssessment1")#on pc
+setwd("~/Documents/RepData_PeerAssessment1")#on mac
 
+unzip('activity.zip')
 activity <- read.csv("activity.csv")
 str(activity)
 head(activity,20)
@@ -24,20 +26,40 @@ You can also embed plots, for example:
 
 ```{r, echo=FALSE}
 activity[,2] <- as.Date(activity$date)
-times < POSIXactivity$interval
+summary(activity[,2])
 time <- paste(activity$date, activity$interval)
 time[1]
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-'''{r}
+What is mean total number of steps taken per day?
+For this part of the assignment, you can ignore the missing values in the dataset.
+1. Make a histogram of the total number of steps taken each day
+2. Calculate and report the mean and median total number of steps taken per day
+```{r}
 library(dplyr)
-byDay <- summarise(group_by(act2, date, time, interval), steps = mean(steps))
-str(byDay)
-head(stepsbyDay)
-plot(byDay$time, byDay$steps, type='l')
-plot(byDay$interval, byDay$steps, fill = T)
-mean(byDay$steps, rm.na = TRUE)
-$as.Date
-?plot
+group_by(activity,date, interval)
+summary(group_by(activity,date))
+byDay <- summarize(group_by(activity, date), totalSteps=sum(steps))
+head(byDay)
+hist(byDay$totalSteps)
+plot(byDay$date, byDay$totalSteps)
 
+
+meanByDay <- summarize(group_by(activity, date), meanSteps = mean(steps)) 
+medianByDay <- summarize(group_by(activity, date), medianSteps = median(steps)) 
+summary(medianByDay)
+str(meanByDay)
+median(activity$steps, na.rm = T)
+
+results <- left_join(byDay, meanByDay)
+results <- left_join(results, medianByDay)
+results
+
+
+byInterval <-summarize(group_by(activity, interval ), averageSteps = mean(steps, na.rm = T))
+head(byInterval, 20)
+plot(byInterval$interval, byInterval$averageSteps, type = 'l')
+
+byInterval[byInterval$averageSteps == max(byInterval$averageSteps),]
+?plot
+```
