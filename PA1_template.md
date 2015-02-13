@@ -209,7 +209,8 @@ newMedianByDay$medianSteps
 ```
 
 
-Overall we see that imputing the inverval mean for the missing data has increased the average number of steps
+Overall we see that imputing the inverval mean for the missing data has increased the average number of steps on only a few days.
+The medians again stayed mostly unchanged.  The NA medians have changed to 34.11.  If the median was 0 before, then it continues to be 0.
 
 
 
