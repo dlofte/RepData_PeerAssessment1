@@ -5,30 +5,27 @@ date: "Monday, February 09, 2015"
 output: html_document
 ---
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
 
 ###Loading in the data
 
 ```{r}
-setwd("~/R/reproResearch/RepData_PeerAssessment1")#on pc
-setwd("~/Documents/RepData_PeerAssessment1")#on mac
+
+
+library(ggplot2)
+library(dplyr)
 
 unzip('activity.zip')
 activity <- read.csv("activity.csv")
 str(activity)
-head(activity,20)
-summary(activity)
-activity[activity$date == "2012-10-01",] 
-
 ```
 
-You can also embed plots, for example:
-
-```{r, echo=FALSE}
+Coerce the 'date' column from character to Date type
+I also create a time column containing both the date and interval
+```{r}
 activity[,2] <- as.Date(activity$date)
 summary(activity[,2])
 time <- paste(activity$date, activity$interval)
-time[1]
 ```
 
 What is mean total number of steps taken per day?
@@ -36,30 +33,106 @@ For this part of the assignment, you can ignore the missing values in the datase
 1. Make a histogram of the total number of steps taken each day
 2. Calculate and report the mean and median total number of steps taken per day
 ```{r}
-library(dplyr)
 group_by(activity,date, interval)
-summary(group_by(activity,date))
 byDay <- summarize(group_by(activity, date), totalSteps=sum(steps))
-head(byDay)
-hist(byDay$totalSteps)
-plot(byDay$date, byDay$totalSteps)
+par(mfrow = c(1,1))
+hist(byDay$totalSteps, main = "Total number of Steps in a Day", xlab = "Steps in a day")
 
+```
 
+We find the mean/median by day and create a table with the results, we see lots of NA or 0's.
+
+```{r}
 meanByDay <- summarize(group_by(activity, date), meanSteps = mean(steps)) 
 medianByDay <- summarize(group_by(activity, date), medianSteps = median(steps)) 
-summary(medianByDay)
-str(meanByDay)
-median(activity$steps, na.rm = T)
 
 results <- left_join(byDay, meanByDay)
 results <- left_join(results, medianByDay)
 results
-
-
-byInterval <-summarize(group_by(activity, interval ), averageSteps = mean(steps, na.rm = T))
-head(byInterval, 20)
-plot(byInterval$interval, byInterval$averageSteps, type = 'l')
-
-byInterval[byInterval$averageSteps == max(byInterval$averageSteps),]
-?plot
 ```
+
+Create plots showing the average/median number of steps by time interval
+```{r}
+byInterval <-summarize(group_by(activity, interval ), averageSteps = mean(steps, na.rm = T), median = median(steps, na.rm = T))
+
+par(mfrow = c(2,1))
+plot(byInterval$interval, byInterval$averageSteps, type = 'l')
+plot(byInterval$interval, byInterval$median, type = 'l')
+```
+
+Let's find the interval with the max number of average steps
+```{r}
+byInterval[byInterval$averageSteps == max(byInterval$averageSteps),]
+
+```
+
+
+##Imputing Missing values
+1. Calculate and report the total number of missing values in the data set
+```{r}
+summary(activity)
+```
+We see from the summary that all the NA values are located in the "steps" column
+and that there are 2304 missing values or NA values
+
+2.  I think replacing by average value
+by interval will give us a fair guestimate.  Average by day is unsatisfactory since
+some days are composed entirely of missing values, such as the first day.  Replacing
+by median by interval results in many 0 values, which isn't as interesting?
+
+3. I am creating a new data frame 'newActivity' with all the NA values replaced by the mean by interval.
+```{r}
+
+newActivity <- activity
+for (int in newActivity$interval){
+    tempMean <- mean(newActivity$steps[newActivity$interval == int], na.rm=T)
+    newActivity[newActivity$interval == int & is.na(newActivity)] <- tempMean
+}
+summary(newActivity)
+head(newActivity)
+
+```
+
+Creating a histogram of the total number of steps by day of our NA free newActivity data
+```{r}
+group_by(newActivity,date, interval)
+newbyDay <- summarize(group_by(newActivity, date), totalSteps=sum(steps))
+
+hist(newbyDay$totalSteps)
+newActivity[3,]
+```
+
+
+```{r}
+newMeanByDay <- summarize(group_by(newActivity, date), meanSteps = mean(steps)) 
+newMedianByDay <- summarize(group_by(newActivity, date), medianSteps = median(steps)) 
+summary(newMedianByDay)
+str(newMeanByDay)
+
+
+newResults <- left_join(newbyDay, newMeanByDay)
+newResults <- left_join(newResults, newMedianByDay)
+newResults
+```
+
+We compare the total of the Activity data.  Column 1 is the total # of steps from the data with imputed values for NAs.
+Column 2 gives the total number of steps from the original data.
+```{r}
+cbind(sum(newResults$totalSteps), sum(results$totalSteps, na.rm = T))
+```
+
+Create a new "day" column containing factor variables inticating whether the day was a weekday or weekend.
+
+```{r}
+newActivity <- mutate(newActivity, day = weekdays(date))
+newActivity[newActivity$day == "Saturday"| newActivity$day == 'Sunday',4] <- 'weekend'
+newActivity[newActivity$day != 'weekend', 4] <- "weekday"
+newActivity$day <- factor(newActivity$day, levels = c("weekend", "weekday"))
+```
+
+Plot the average number of steps by interval for both weekdays and weekends.
+
+```{r}
+bydayInterval <- summarize(group_by(newActivity,day, interval), steps = mean(steps))
+qplot(interval, steps, data =bydayInterval, facets =day~., geom = 'line' )
+?qplot

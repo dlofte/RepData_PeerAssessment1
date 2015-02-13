@@ -7,19 +7,126 @@ output:
 
 
 ## Loading and preprocessing the data
+```{r}
 
+#setwd("~/R/reproResearch/RepData_PeerAssessment1")
+library(ggplot2)
+library(dplyr)
 
+unzip('activity.zip')
+activity <- read.csv("activity.csv")
+str(activity)
+```
+Coerce the 'date' column from character to Date type
+```{r}
+activity[,2] <- as.Date(activity$date)
+```
 
 ## What is mean total number of steps taken per day?
+```{r}
 
+byDay <- summarize(group_by(activity, date), totalSteps=sum(steps))
+par(mfrow = c(1,1))
+hist(byDay$totalSteps, main = "Total number of Steps in a Day", xlab = "Steps in a day")
 
+```
+We find the mean/median by day and create a table with the results, we see lots of NA or 0's.
+
+```{r}
+meanByDay <- summarize(group_by(activity, date), meanSteps = mean(steps)) 
+ 
+meanByDay$meanSteps
+```
+
+```{r}
+medianByDay <- summarize(group_by(activity, date), medianSteps = median(steps))
+medianByDay$medianSteps
+```
 
 ## What is the average daily activity pattern?
+Create plots showing the average/median number of steps by time interval
+```{r}
+byInterval <-summarize(group_by(activity, interval ), averageSteps = mean(steps, na.rm = T), median = median(steps, na.rm = T))
 
+par(mfrow = c(2,1))
+plot(byInterval$interval, byInterval$averageSteps, type = 'l', ylab = "Mean number of Steps", xlab = "Time interval")
+plot(byInterval$interval, byInterval$median, type = 'l', ylab = "Median number of Steps", xlab = "Time interval")
+```
+
+Let's find the interval with the max number of average steps
+```{r}
+byInterval[byInterval$averageSteps == max(byInterval$averageSteps),]
+
+```
 
 
 ## Imputing missing values
+I think replacing by average value by interval will give us a fair guestimate.  Average by day is unsatisfactory since some days are composed entirely of missing values, such as the first day.  Replacingby median by interval results in many 0 values, which 
+isn't as interesting?
+
+```{r}
+
+newActivity <- activity
+for (int in newActivity$interval){
+    tempMean <- mean(newActivity$steps[newActivity$interval == int], na.rm=T)
+    newActivity[newActivity$interval == int & is.na(newActivity)] <- tempMean
+}
+summary(newActivity)
+
+```
+
+Creating a histogram of the total number of steps by day of our NA free newActivity data
+```{r}
+
+newbyDay <- summarize(group_by(newActivity, date), totalSteps=sum(steps))
+
+hist(newbyDay$totalSteps,main = 'Histogram of Total steps by day', xlab = "Total step by day")
+newActivity[3,]
+```
+
+
+Create plots showing the average/median number of steps by time interval
+```{r}
+newbyInterval <-summarize(group_by(newActivity, interval ), averageSteps = mean(steps, na.rm = T), median = median(steps, na.rm = T))
+
+par(mfrow = c(2,1))
+plot(newbyInterval$interval, newbyInterval$averageSteps, type = 'l', ylab = "Mean number of Steps", xlab = "Time interval")
+plot(newbyInterval$interval, newbyInterval$median, type = 'l', ylab = "Median number of Steps", xlab = "Time interval")
+```
+
+
+A list of the mean number of steps by day
+```{r}
+newMeanByDay <- summarize(group_by(newActivity, date), meanSteps = mean(steps)) 
+newMeanByDay$meanSteps
+
+```
+
+a list of the median number of steps by day
+```{r}
+newMedianByDay <- summarize(group_by(newActivity, date), medianSteps = median(steps))
+newMedianByDay$medianSteps
+
+```
+
+
+Overall we see that imputing the inverval mean for the missing data has increased the average number of steps on only a few days.
+The medians again stayed mostly unchanged.  The NA medians have changed to 34.11.  If the median was 0 before, then it continues to be 0.
 
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+Create a new "day" column containing factor variables inticating whether the day was a weekday or weekend.
+
+```{r}
+newActivity <- mutate(newActivity, day = weekdays(date))
+newActivity[newActivity$day == "Saturday"| newActivity$day == 'Sunday',4] <- 'weekend'
+newActivity[newActivity$day != 'weekend', 4] <- "weekday"
+newActivity$day <- factor(newActivity$day, levels = c("weekend", "weekday"))
+```
+
+Plot the average number of steps by interval for both weekdays and weekends.
+
+```{r}
+bydayInterval <- summarize(group_by(newActivity,day, interval), steps = mean(steps))
+qplot(interval, steps, data =bydayInterval, facets =day~., geom = 'line' )
